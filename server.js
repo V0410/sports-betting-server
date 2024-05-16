@@ -7,7 +7,7 @@ const bettingAbi_json = require("./contracts/Betting.json")
 
 require("dotenv").config()
 
-const INTERVAL_TIME = 1 * 60 * 1000;
+const INTERVAL_TIME = 10 * 60 * 1000;
 
 const main = async () => {
   const provider = new ethers.JsonRpcProvider(process.env.RPC_URL)
