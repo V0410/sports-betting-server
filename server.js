@@ -1,19 +1,25 @@
 const { ethers } = require("ethers")
+const axios = require("axios")
 const connectDB = require("./config/db")
 const Fixtures = require("./models/Fixtures")
+const sendTransaction = require("./utils/sendTransaction")
 const bettingAbi_json = require("./contracts/Betting.json")
 
 require("dotenv").config()
 
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL)
-const BettingContract = new ethers.Contract(process.env.CONTRACT_ADDRESS, bettingAbi_json, provider)
-
-const INTERVAL_TIME = 10 * 60 * 1000;
+const INTERVAL_TIME = 1 * 60 * 1000;
 
 const main = async () => {
+  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL)
+  const ownerKey = process.env.CONTRACT_OWNER
+  const owner = new ethers.Wallet(ownerKey, provider);
+  const BettingContract = new ethers.Contract(process.env.CONTRACT_ADDRESS, bettingAbi_json, provider)
+  const gasLimit = 2_000_000
+
   setInterval(async () => {
     try {
       const fixtures = await Fixtures.find({ finished: false })
+
       fixtures.map(async (fixture) => {
         const { fixtureId } = fixture
         console.log(fixtureId)
@@ -27,9 +33,24 @@ const main = async () => {
         })
         if (res.data.response[0].fixture.status.short === "FT") {
           const goals = res.data.response[0].goals
-          const fixtureResult = goals.home > goals.away ? "HOME" : goals.home < goals.away ? "AWAY" : "DRAW"
-          BettingContract.methods.processGame()
-          console.log(fixtureResult)
+          const fixtureResult = goals.home > goals.away ? 0 : goals.home < goals.away ? 2 : 1
+
+          const transaction = await BettingContract.processGame.populateTransaction(
+            BigInt(fixtureId),
+            fixtureResult,
+          )
+          const transactionStatus = await sendTransaction(
+            provider,
+            owner,
+            {
+              ...transaction,
+              gasLimit: gasLimit,
+            },
+          )
+          
+          if (transactionStatus === "sent") {
+            fixture.updateOne({ finished: true })
+          }
         }
       })
     } catch (error) {

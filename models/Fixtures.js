@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const UserSchema = new Schema(
+const FixtureSchema = new Schema(
   {
     fixtureId: {
       type: String,
@@ -31,7 +31,6 @@ const UserSchema = new Schema(
       default: false,
     }
   },
-  { timestamps: true }
 );
 
-module.exports = mongoose.model('fixtures', UserSchema);
+module.exports = mongoose.model('fixtures', FixtureSchema);
